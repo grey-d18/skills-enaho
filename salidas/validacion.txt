@@ -1,0 +1,14 @@
+Validación ENAHO 2024 (código INEI 966)
+
+[OK] Llaves de persona únicas
+[OK] Unión sin perder ni duplicar filas: 108,664 vs 108,664
+[OK] Toda persona tiene hogar en la sumaria: 0 sin hogar
+[OK] Residentes habituales: 108,664 (esperado 108,664; módulo 200 trae 117,721)
+[OK] Pobreza (sumaria, factor07 × mieperho): 27.58 % (INEI 27.6 %)
+[OK] Pobreza (personas, facpob07): 27.53 % (INEI 27.6 %)
+[OK] Pobreza extrema (sumaria): 5.50 % (INEI 5.5 %)
+
+Pobreza extrema (personas, facpob07): 5.50 %
+Población representada: 34,147,768 personas
+
+RESULTADO: VÁLIDA
