@@ -6,9 +6,7 @@ argument-hint: [año]
 
 # Limpiar la ENAHO
 
-1. Si faltan los zip en `datos/`, pide al usuario bajarlos del portal de microdatos del INEI (código 966 = 2024):
-   - `https://proyectos.inei.gob.pe/iinei/srienaho/descarga/STATA/966-Modulo34.zip`
-   - `https://proyectos.inei.gob.pe/iinei/srienaho/descarga/STATA/966-Modulo02.zip`
+1. Si faltan `datos/966-Modulo34.zip` o `datos/966-Modulo02.zip`, usa primero la skill `descargando-enaho`.
 2. Desde la raíz del repositorio, corre exactamente (si no te dan año, usa 2024):
    `uv run ${CLAUDE_SKILL_DIR}/scripts/limpiar.py --anio $0`
    No modifiques el script ni repliques la limpieza a mano.

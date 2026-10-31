@@ -4,6 +4,7 @@ Skills de Claude Code para trabajar con la ENAHO del INEI de forma reproducible.
 
 | Skill | Qué hace | Estado |
 |---|---|---|
+| [`descargando-enaho`](.claude/skills/descargando-enaho/SKILL.md) | Baja los módulos 34 y 02 del INEI y decide qué archivo usar, incluida la sumaria | ✅ |
 | [`limpiando-enaho`](.claude/skills/limpiando-enaho/SKILL.md) | Une los módulos 34 y 02 en una base de personas y la valida contra el INEI | ✅ |
 
 ## Requisitos
@@ -13,15 +14,15 @@ Skills de Claude Code para trabajar con la ENAHO del INEI de forma reproducible.
 
 ## Datos
 
-Los microdatos no se suben al repositorio. Descárgalos en `datos/` (no hace falta descomprimirlos):
+Los microdatos no se suben al repositorio. Pídele a Claude «descarga la ENAHO 2024», o corre:
 
 ```bash
-mkdir -p datos
-curl -fL -o datos/966-Modulo34.zip https://proyectos.inei.gob.pe/iinei/srienaho/descarga/STATA/966-Modulo34.zip
-curl -fL -o datos/966-Modulo02.zip https://proyectos.inei.gob.pe/iinei/srienaho/descarga/STATA/966-Modulo02.zip
+uv run .claude/skills/descargando-enaho/scripts/descargar.py --anio 2024
 ```
 
-966 es el código de la ENAHO 2024 en el portal de microdatos del INEI.
+Esto baja `966-Modulo34.zip` y `966-Modulo02.zip` a `datos/`. 966 es el código de la ENAHO 2024 en el portal de microdatos del INEI. No hace falta descomprimirlos.
+
+**Qué sumaria se usa:** `sumaria-2024.dta`, con el gasto en 8 grupos. El repositorio no usa la `-12g`: da la misma pobreza, pero desglosa el gasto en 12 grupos con variables que se llaman igual y miden otra cosa. Detalle en [reference.md](.claude/skills/descargando-enaho/reference.md).
 
 ## Uso
 

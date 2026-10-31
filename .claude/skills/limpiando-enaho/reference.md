@@ -29,7 +29,7 @@ Una fila por residente habitual (108,664 en 2024).
 - Los nombres de columna pasan a minúsculas y sin tildes; `aÑo` queda como `anio`.
 - Residente habitual: `(p204==1 & p205==2) | (p204==2 & p206==1)`.
 - Personas y hogares se unen con `validate="m:1"`.
-- Se usa `sumaria-<año>.dta`, no `sumaria-<año>-12g.dta` (la versión de 12 grupos de gasto).
+- Se usa `sumaria-<año>.dta`, no `sumaria-<año>-12g.dta` (la versión de 12 grupos de gasto). El porqué está en el reference.md de `descargando-enaho`.
 
 ## Cifras de control, ENAHO 2024
 
