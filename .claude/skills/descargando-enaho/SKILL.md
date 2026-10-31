@@ -6,10 +6,10 @@ argument-hint: [año]
 
 # Descargar la ENAHO
 
-1. Si te pidieron explícitamente descargar o bajar la ENAHO, corre directamente (sin año, usa 2024):
-   `uv run ${CLAUDE_SKILL_DIR}/scripts/descargar.py --anio $0`
+1. Usa el año que pidió el usuario, o 2024 si no pidió ninguno. Si te pidieron explícitamente descargar o bajar la ENAHO, corre directamente:
+   `uv run ${CLAUDE_SKILL_DIR}/scripts/descargar.py --anio <año>`
 2. Si llegaste aquí porque faltan datos para otra tarea, primero corre:
-   `uv run ${CLAUDE_SKILL_DIR}/scripts/descargar.py --anio $0 --solo-verificar`
+   `uv run ${CLAUDE_SKILL_DIR}/scripts/descargar.py --anio <año> --solo-verificar`
    Si dice FALTAN DATOS, pregunta al usuario si descargas los zip (de 6 a 16 MB cada uno) y descarga solo si acepta.
 3. Lee la salida. Si dice FALTAN DATOS después de descargar, muestra el error y detente.
 4. Usa exactamente el `.dta` que el script indica para cada módulo. La sumaria es `sumaria-AAAA.dta`, con el gasto en 8 grupos.

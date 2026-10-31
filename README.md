@@ -68,6 +68,10 @@ Baja los límites departamentales a `datos/` la primera vez y genera `mapas/pobr
 
 ![Pobreza por departamento](mapas/pobreza_departamento_2024.png)
 
+## Evaluación
+
+Los tres pedidos de prueba, con y sin skills, están en [evaluacion.md](evaluacion.md).
+
 ## Validación (ENAHO 2024)
 
 | Chequeo | Resultado | INEI |

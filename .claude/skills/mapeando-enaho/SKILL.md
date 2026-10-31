@@ -7,8 +7,8 @@ argument-hint: [año]
 # Mapear la pobreza de la ENAHO
 
 1. Si no existe `salidas/personas_2024.parquet`, usa primero la skill `limpiando-enaho`.
-2. Corre exactamente, desde la raíz del repositorio (sin año, usa 2024):
-   `uv run ${CLAUDE_SKILL_DIR}/scripts/mapear.py --anio $0`
+2. Corre exactamente, desde la raíz del repositorio, con el año que pidió el usuario o 2024 si no pidió ninguno:
+   `uv run ${CLAUDE_SKILL_DIR}/scripts/mapear.py --anio <año>`
    El script baja los límites departamentales a `datos/` si faltan. No dibujes el mapa con otro código ni cambies su diseño.
 3. Si el script termina con error, muestra el mensaje y detente. Nunca entregues un mapa con departamentos en blanco.
 4. Responde con la ruta del mapa (`mapas/pobreza_departamento_2024.png`) y las cifras que imprimió el script. No recalcules las cifras por tu cuenta.
