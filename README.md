@@ -7,6 +7,7 @@ Skills de Claude Code para trabajar con la ENAHO del INEI de forma reproducible.
 | [`descargando-enaho`](.claude/skills/descargando-enaho/SKILL.md) | Baja los módulos 34 y 02 del INEI y decide qué archivo usar, incluida la sumaria | ✅ |
 | [`limpiando-enaho`](.claude/skills/limpiando-enaho/SKILL.md) | Une los módulos 34 y 02 en una base de personas y la valida contra el INEI | ✅ |
 | [`graficando-enaho`](.claude/skills/graficando-enaho/SKILL.md) | Grafica el % de personas que viven en hogares pobres por área, sexo o edad, siempre con las mismas reglas | ✅ |
+| [`mapeando-enaho`](.claude/skills/mapeando-enaho/SKILL.md) | Mapea el % de personas que viven en hogares pobres por departamento, uniendo por código | ✅ |
 
 ## Requisitos
 
@@ -56,6 +57,16 @@ uv run .claude/skills/graficando-enaho/scripts/graficar.py --por area   # o sexo
 Genera `figuras/pobreza_por_<corte>_2024.png`, ponderado con `facpob07`.
 
 ![Pobreza por área](figuras/pobreza_por_area_2024.png)
+
+Para mapear sin Claude:
+
+```bash
+uv run .claude/skills/mapeando-enaho/scripts/mapear.py --anio 2024
+```
+
+Baja los límites departamentales a `datos/` la primera vez y genera `mapas/pobreza_departamento_2024.png`.
+
+![Pobreza por departamento](mapas/pobreza_departamento_2024.png)
 
 ## Validación (ENAHO 2024)
 
