@@ -2,7 +2,7 @@
 
 ## Base de salida: `salidas/personas_<año>.parquet`
 
-Una fila por residente habitual (108,664 en 2024).
+Una fila por miembro del hogar según el INEI (109,842 en 2024, igual a la suma de `mieperho`).
 
 | Columna | Qué es |
 |---|---|
@@ -14,12 +14,12 @@ Una fila por residente habitual (108,664 en 2024).
 | `estrato` | 1–5 urbano, 6–8 rural |
 | `urbano` | 1 si `estrato <= 5` |
 | `parentesco` | p203: 1 jefe, 2 cónyuge, 3 hijo/a… |
-| `p204`, `p205`, `p206` | Preguntas de residencia (usadas en el filtro) |
+| `p205` | ¿Estuvo ausente 30 días o más? (1 sí, 2 no). Todos son miembros (`p204 = 1`), presentes o ausentes |
 | `sexo` | p207: 1 hombre, 2 mujer |
 | `edad` | p208a, años cumplidos |
 | `pobreza` | Del hogar: 1 pobre extremo, 2 pobre no extremo, 3 no pobre |
 | `pobre`, `pobre_extremo` | 1 si `pobreza <= 2` / `pobreza == 1` |
-| `mieperho` | Miembros del hogar |
+| `mieperho` | Miembros del hogar según el INEI (coincide con las filas de cada hogar) |
 | `factor07` | Factor de expansión del hogar |
 | `facpob07` | Factor de expansión de la persona: úsalo para toda cifra de personas |
 
@@ -27,7 +27,8 @@ Una fila por residente habitual (108,664 en 2024).
 
 - Se leen los `.dta` con `convert_categoricals=False`, así que se trabaja con los códigos y no con las etiquetas.
 - Los nombres de columna pasan a minúsculas y sin tildes; `aÑo` queda como `anio`.
-- Residente habitual: `(p204==1 & p205==2) | (p204==2 & p206==1)`.
+- **Método del INEI:** la base incluye a toda persona con `p204 == 1` (miembro del hogar), esté presente o ausente. Son exactamente las personas que el INEI cuenta en `mieperho` y entre las que reparte el gasto del hogar para decidir si es pobre. El script lo verifica hogar por hogar.
+- No se usa el filtro de residentes habituales `(p204==1 & p205==2) | (p204==2 & p206==1)`: deja fuera a miembros ausentes que el INEI sí cuenta y da 108,664 personas, con una pobreza de 27.53 % en vez de 27.58 %.
 - Personas y hogares se unen con `validate="m:1"`.
 - Se usa `sumaria-<año>.dta`, no `sumaria-<año>-12g.dta` (la versión de 12 grupos de gasto). El porqué está en el reference.md de `descargando-enaho`.
 
@@ -35,13 +36,15 @@ Una fila por residente habitual (108,664 en 2024).
 
 | Pedido | Cifra |
 |---|---|
-| Pobreza nacional | 27.6 % (sumaria 27.58 %, personas 27.53 %) |
+| Pobreza nacional | 27.6 % (27.58 % con la sumaria y con la base de personas) |
 | Pobreza extrema | 5.5 % |
 | Cusco | 18.5 % |
-| Urbano / rural | 24.8 % / 39.3 % con la sumaria (24.7 % / 39.4 % con personas) |
+| Urbano / rural | 24.8 % / 39.3 % |
 | Departamentos | Cajamarca 45.0 %, Loreto 43.0 %, Puno 39.9 %, Ica 6.0 %, Moquegua 11.0 %, Madre de Dios 11.1 % |
 
-Las cifras de hogar se calculan con la sumaria, ponderando con `factor07 × mieperho`. Las diferencias de unas décimas frente a la base de personas son esperables.
+Ponderar la base de personas con `facpob07` da lo mismo que la sumaria con `factor07 × mieperho`: cada persona hereda el factor de su hogar y cada hogar tiene `mieperho` filas.
+
+**Terminología:** la pobreza es del hogar. Las cifras son el "% de personas que viven en hogares pobres". Por sexo o edad: "X % de las mujeres vive en hogares pobres", nunca "las mujeres son más pobres", porque la medición no capta la desigualdad dentro del hogar.
 
 ## Otras variables
 

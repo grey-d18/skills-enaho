@@ -4,19 +4,18 @@
 # ///
 """Limpia los módulos 34 (sumaria) y 02 (miembros) de la ENAHO del INEI.
 
-Arma una base de personas (residentes habituales) con la condición de pobreza
-de su hogar y los factores de expansión, y la valida contra la cifra oficial.
+Arma una base con los miembros del hogar tal como los cuenta el INEI (p204 = 1,
+los mismos de mieperho), la condición de pobreza de su hogar y los factores de
+expansión, y la valida contra la cifra oficial.
 
 Uso (desde la raíz del repositorio):
     uv run .claude/skills/limpiando-enaho/scripts/limpiar.py --anio 2024
 
-Lee los zip directamente de datos/ (no hace falta descomprimirlos) y escribe:
+Lee los zip de datos/ sin descomprimirlos y escribe:
     salidas/personas_<anio>.parquet   solo si la validación pasa
     salidas/validacion.txt            siempre
 Sale con código 1 si alguna validación falla.
 """
-
-from __future__ import annotations
 
 import argparse
 import re
@@ -28,53 +27,41 @@ from pathlib import Path
 import pandas as pd
 
 # Código del portal de microdatos del INEI y cifras oficiales por año.
-# Para agregar un año: su código, y las cifras publicadas por el INEI.
 ANIOS = {
-    2024: {
-        "codigo": 966,
-        "pobreza": 27.6,  # % de personas en pobreza monetaria
-        "extrema": 5.5,  # % de personas en pobreza extrema
-        "residentes": 108_664,  # filas esperadas en la base de personas
-    },
+    2024: {"codigo": 966, "pobreza": 27.6, "extrema": 5.5, "miembros": 109_842},
 }
-TOLERANCIA = 0.1  # puntos porcentuales
+TOLERANCIA = 0.1  # puntos porcentuales frente al INEI
 
 LLAVES_HOGAR = ["conglome", "vivienda", "hogar"]
 LLAVES_PERSONA = LLAVES_HOGAR + ["codperso"]
-
 COLS_SUMARIA = LLAVES_HOGAR + ["pobreza", "mieperho", "factor07"]
 COLS_MIEMBROS = LLAVES_PERSONA + [
     "anio", "mes", "ubigeo", "dominio", "estrato",
-    "p203", "p204", "p205", "p206", "p207", "p208a", "facpob07",
+    "p203", "p205", "p207", "p208a", "facpob07",
 ]
+NOMBRES = {"p203": "parentesco", "p207": "sexo", "p208a": "edad"}
 
 
 def normalizar(nombre: str) -> str:
     """'aÑo' -> 'anio'; el resto, en minúscula y sin tildes."""
-    nombre = nombre.strip().lower().replace("ñ", "ni")
-    nombre = unicodedata.normalize("NFKD", nombre)
+    nombre = unicodedata.normalize("NFKD", nombre.strip().lower().replace("ñ", "ni"))
     return "".join(c for c in nombre if not unicodedata.combining(c))
 
 
-def leer_dta(zip_path: Path, patron: str) -> pd.DataFrame:
-    """Paso 1 y 2: lee el .dta del zip con códigos (no etiquetas) y normaliza columnas."""
+def leer_dta(zip_path: Path, patron: str, llaves: list[str], peso: str) -> pd.DataFrame:
+    """Lee el .dta del zip con códigos (no etiquetas), llaves como texto y peso en float64."""
     if not zip_path.exists():
-        sys.exit(f"Falta {zip_path}. Descárgalo del portal de microdatos del INEI.")
+        sys.exit(f"Falta {zip_path}. Usa la skill descargando-enaho.")
     with zipfile.ZipFile(zip_path) as z:
         candidatos = [n for n in z.namelist() if re.search(patron, n, re.IGNORECASE)]
         if len(candidatos) != 1:
-            sys.exit(f"Esperaba un archivo que coincida con {patron!r} en {zip_path}, "
-                     f"encontré {candidatos}")
+            sys.exit(f"Esperaba un .dta que coincida con {patron!r} en {zip_path}: {candidatos}")
         with z.open(candidatos[0]) as f:
             df = pd.read_stata(f, convert_categoricals=False)
     df.columns = [normalizar(c) for c in df.columns]
-    return df
-
-
-def a_texto(df: pd.DataFrame, columnas: list[str]) -> pd.DataFrame:
-    """Llaves y ubigeo como texto: nunca como número, o se pierden los ceros."""
-    for c in columnas:
+    for c in llaves + ["ubigeo"]:  # como número se pierden los ceros a la izquierda
         df[c] = df[c].astype("string").str.strip()
+    df[peso] = df[peso].astype("float64")  # en float32 las sumas pierden precisión
     return df
 
 
@@ -90,68 +77,63 @@ def main() -> int:
     args = parser.parse_args()
 
     if args.anio not in ANIOS:
-        sys.exit(f"Año {args.anio} sin configurar. Disponibles: {sorted(ANIOS)}. "
-                 "Agrega su código del INEI y sus cifras oficiales en ANIOS.")
+        sys.exit(f"Año {args.anio} sin configurar. Disponibles: {sorted(ANIOS)}.")
     ref = ANIOS[args.anio]
     cod = ref["codigo"]
 
     # 1-2. Leer y normalizar
-    sumaria = leer_dta(args.datos / f"{cod}-Modulo34.zip", rf"/sumaria-{args.anio}\.dta$")
-    miembros = leer_dta(args.datos / f"{cod}-Modulo02.zip", rf"/enaho01-{args.anio}-200\.dta$")
-    sumaria = a_texto(sumaria, LLAVES_HOGAR + ["ubigeo"])
-    miembros = a_texto(miembros, LLAVES_PERSONA + ["ubigeo"])
+    sumaria = leer_dta(args.datos / f"{cod}-Modulo34.zip", rf"/sumaria-{args.anio}\.dta$",
+                       LLAVES_HOGAR, "factor07")
+    modulo_200 = leer_dta(args.datos / f"{cod}-Modulo02.zip", rf"/enaho01-{args.anio}-200\.dta$",
+                          LLAVES_PERSONA, "facpob07")
 
-    # Cifra oficial con la sumaria: personas = hogares × miembros
-    peso_hogar = sumaria["factor07"] * sumaria["mieperho"]
-    pob_sumaria = pct(sumaria["pobreza"] <= 2, peso_hogar)
-    ext_sumaria = pct(sumaria["pobreza"] == 1, peso_hogar)
+    # 3. Miembros del hogar según el INEI: p204 == 1, presentes o ausentes.
+    #    Son las personas de mieperho, entre las que el INEI reparte el gasto del hogar.
+    personas = modulo_200.loc[modulo_200["p204"] == 1, COLS_MIEMBROS]
 
-    # 3. Residentes habituales (definición del INEI):
-    #    miembros no ausentes 30+ días, o no miembros presentes 30+ días
-    filas_200 = len(miembros)
-    residente = ((miembros["p204"] == 1) & (miembros["p205"] == 2)) | (
-        (miembros["p204"] == 2) & (miembros["p206"] == 1)
-    )
-    personas = miembros.loc[residente, COLS_MIEMBROS].copy()
-
-    # 4. Unir personas con su hogar; muchos a uno o falla
+    # 4. Unir cada persona con su hogar; muchos a uno o falla
     base = personas.merge(sumaria[COLS_SUMARIA], on=LLAVES_HOGAR,
                           how="left", validate="m:1", indicator=True)
     sin_hogar = int((base.pop("_merge") != "both").sum())
 
     # 5. Construir variables
+    base = base.rename(columns=NOMBRES)
     base["departamento"] = base["ubigeo"].str[:2]
     base["urbano"] = (base["estrato"] <= 5).astype("int8")
     base["pobre"] = (base["pobreza"] <= 2).astype("int8")
     base["pobre_extremo"] = (base["pobreza"] == 1).astype("int8")
-    base = base.rename(columns={"p207": "sexo", "p208a": "edad", "p203": "parentesco"})
 
     # 6. Validar
+    por_hogar = base.groupby(LLAVES_HOGAR).size().reindex(
+        pd.MultiIndex.from_frame(sumaria[LLAVES_HOGAR]), fill_value=0)
+    hogares_distintos = int((por_hogar.to_numpy() != sumaria["mieperho"].to_numpy()).sum())
+    peso_hogar = sumaria["factor07"] * sumaria["mieperho"]
+    pob_sumaria = pct(sumaria["pobreza"] <= 2, peso_hogar)
+    ext_sumaria = pct(sumaria["pobreza"] == 1, peso_hogar)
     pob_personas = pct(base["pobre"], base["facpob07"])
-    ext_personas = pct(base["pobre_extremo"], base["facpob07"])
+
     chequeos = [
         ("Llaves de persona únicas", not personas.duplicated(LLAVES_PERSONA).any(), ""),
         ("Unión sin perder ni duplicar filas", len(base) == len(personas),
          f"{len(base):,} vs {len(personas):,}"),
         ("Toda persona tiene hogar en la sumaria", sin_hogar == 0, f"{sin_hogar} sin hogar"),
-        ("Residentes habituales", len(base) == ref["residentes"],
-         f"{len(base):,} (esperado {ref['residentes']:,}; módulo 200 trae {filas_200:,})"),
-        ("Pobreza (sumaria, factor07 × mieperho)",
-         abs(pob_sumaria - ref["pobreza"]) < TOLERANCIA,
+        ("Miembros por hogar iguales a mieperho", hogares_distintos == 0,
+         f"{hogares_distintos} hogares distintos"),
+        ("Miembros del hogar", len(base) == ref["miembros"],
+         f"{len(base):,} (esperado {ref['miembros']:,}; el módulo 200 trae {len(modulo_200):,})"),
+        ("Pobreza (sumaria, factor07 × mieperho)", abs(pob_sumaria - ref["pobreza"]) < TOLERANCIA,
          f"{pob_sumaria:.2f} % (INEI {ref['pobreza']} %)"),
-        ("Pobreza (personas, facpob07)",
-         abs(pob_personas - ref["pobreza"]) < TOLERANCIA,
-         f"{pob_personas:.2f} % (INEI {ref['pobreza']} %)"),
-        ("Pobreza extrema (sumaria)",
-         abs(ext_sumaria - ref["extrema"]) < TOLERANCIA,
+        ("Pobreza (personas, facpob07) igual a la sumaria", abs(pob_personas - pob_sumaria) < 0.01,
+         f"{pob_personas:.2f} % vs {pob_sumaria:.2f} %"),
+        ("Pobreza extrema (sumaria)", abs(ext_sumaria - ref["extrema"]) < TOLERANCIA,
          f"{ext_sumaria:.2f} % (INEI {ref['extrema']} %)"),
     ]
-    ok = all(c[1] for c in chequeos)
+    ok = all(paso for _, paso, _ in chequeos)
 
     lineas = [f"Validación ENAHO {args.anio} (código INEI {cod})", ""]
     lineas += [f"[{'OK' if paso else 'FALLA'}] {nombre}" + (f": {det}" if det else "")
                for nombre, paso, det in chequeos]
-    lineas += ["", f"Pobreza extrema (personas, facpob07): {ext_personas:.2f} %",
+    lineas += ["", "Pobreza = % de personas que viven en hogares pobres.",
                f"Población representada: {base['facpob07'].sum():,.0f} personas",
                "", "RESULTADO: " + ("VÁLIDA" if ok else "NO VÁLIDA, no usar la base")]
 
@@ -162,8 +144,8 @@ def main() -> int:
     if ok:
         base.to_parquet(destino, index=False)
         lineas.append(f"Base guardada en {destino} ({len(base):,} filas, {base.shape[1]} columnas)")
-    elif destino.exists():
-        destino.unlink()  # no dejar una base vieja que parezca válida
+    else:
+        destino.unlink(missing_ok=True)  # no dejar una base vieja que parezca válida
     print("\n".join(lineas))
     return 0 if ok else 1
 

@@ -13,8 +13,6 @@ los que ya están sanos, verifica que traigan los .dta esperados e imprime qué
 archivo usar de cada módulo. Sale con código 1 si falta algo o un zip está dañado.
 """
 
-from __future__ import annotations
-
 import argparse
 import re
 import sys

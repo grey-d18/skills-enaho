@@ -12,5 +12,6 @@ argument-hint: [año]
    No modifiques el script ni repliques la limpieza a mano.
 3. Lee `salidas/validacion.txt`. Si dice NO VÁLIDA o la pobreza difiere del INEI en más de 0.1 puntos, detente y muestra el archivo al usuario; no respondas con cifras.
 4. Responde con `salidas/personas_$0.parquet`. Toda cifra de personas va ponderada con `facpob07`; nunca cuentes filas como si fueran personas.
-5. Pobre es `pobre == 1` (`pobreza <= 2`), nunca un promedio de `pobreza`. Une con otras fuentes por código (`departamento`, `ubigeo`) como texto, nunca por nombre.
-6. Antes de usar una variable que no está en la base, o de comparar con cifras del INEI, lee [reference.md](reference.md).
+5. La pobreza es del hogar: todos sus miembros comparten la misma condición. Escribe siempre "X % de las personas vive en hogares pobres". Por sexo o edad, di "X % de las mujeres vive en hogares pobres", nunca "las mujeres son más pobres".
+6. Pobre es `pobre == 1` (`pobreza <= 2`), nunca un promedio de `pobreza`. Une con otras fuentes por código (`departamento`, `ubigeo`) como texto, nunca por nombre.
+7. Antes de usar una variable que no está en la base, o de comparar con cifras del INEI, lee [reference.md](reference.md).
